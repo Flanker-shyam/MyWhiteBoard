@@ -135,7 +135,7 @@ const WhiteBoard = () => {
         newCanvas.dispose();
       };
     }
-  }, [drawingMode]);
+  }, []);
 
   useEffect(() => {
     const handleCanvasEvents = () => {
@@ -163,7 +163,7 @@ const WhiteBoard = () => {
     if (canvas) {
       handleCanvasEvents();
     }
-  }, [canvas, undoStack, redoStack]);
+  }, [canvas]);
 
   useEffect(() => {
     if (canvas) {
