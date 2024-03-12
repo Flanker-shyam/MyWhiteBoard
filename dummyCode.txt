@@ -1,0 +1,25 @@
+ const [keycloak, setKeycloak] = useState<Keycloak.KeycloakInstance | null>(
+    null
+  );
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    const keycloakInstance = new Keycloak("../keycloakConfig.ts");
+    keycloakInstance
+      .init({ onLoad: "login-required" })
+      .then((authenticated) => {
+        setKeycloak(keycloakInstance);
+        setAuthenticated(authenticated);
+      });
+  }, []);
+
+  const login = () => {
+    console.log("loginnnnnnnn");
+    keycloak?.login();
+  };
+
+  useEffect(() => {
+    if (authenticated) {
+      window.location.href = "/whiteboard";
+    }
+  }, [authenticated]);
