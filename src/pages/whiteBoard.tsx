@@ -7,12 +7,14 @@ import CircleDrawer from "../components/addObjectComponents/circleDrawer";
 import TriangleDrawer from "../components/addObjectComponents/triangleDrawer";
 import LineDrawer from "../components/addObjectComponents/lineDrawer";
 import TextDrawer from "../components/addObjectComponents/textDrawer";
+import { saveAsImage, saveAsPDF } from "../functions/saveCanvas";
 import {
   saveState,
   handleUndo,
   handleRedo,
 } from "../functions/undoRedoHandler";
 import handleColorChange from "../functions/colorChangeHandler";
+import { webpackConfig } from "../config/webpackConfig";
 
 const WhiteBoard = () => {
   const sessionId = useParams();
@@ -25,14 +27,15 @@ const WhiteBoard = () => {
   const [selectedColor, setSelectedColor] = useState<string>("black");
   const [undoStack, setUndoStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
-  const [ws, setWs] = useState<WebSocket>(new WebSocket("ws://localhost:8083"));
+  const [ws, setWs] = useState<WebSocket>(new WebSocket(webpackConfig.WEBSOCKET_URL));
+  const [brushColor, setBrushColor] = useState<string>("#000000");
+  const [brushSize, setBrushSize] = useState<number>(5);
+  const [drawingMode, setDrawingMode] = useState<boolean>(true);
 
   useEffect(() => {
     // Initialize WebSocket client
     ws.onopen = () => {
       console.log("Connected to WebSocket server");
-      // setWs(socket); // Set WebSocket reference when connection is open
-      console.log("ws:::::::::::::", ws);
     };
 
     ws.onmessage = (e) => {
@@ -46,7 +49,6 @@ const WhiteBoard = () => {
       });
       // newCanvas.clear();
       newCanvas.loadFromJSON(data, canvas?.renderAll.bind(canvas)!);
-      console.log("newwwwww:", newCanvas);
 
       setCanvas(newCanvas);
       // Update canvas rendering
@@ -75,14 +77,11 @@ const WhiteBoard = () => {
           type: "sessionKey",
           key: sessionId.sessionId,
         });
-        console.log("Sending message to server:", message);
         ws.send(message);
       } else {
         console.log("WebSocket connection is not open");
       }
     };
-
-    // Call sendSessionKey function immediately if WebSocket is already open
     sendSessionKey();
 
     // Subscribe to WebSocket events
@@ -112,34 +111,13 @@ const WhiteBoard = () => {
     };
   }, [ws, sessionId]);
 
-  // useEffect(() => {
-  //   // Track mouse events and send data to WebSocket server
-  //   canvas?.on('mouse:move', (event) => {
-  //     const { e } = event;
-  //     const mousePosition = {
-  //       x: e.clientX,
-  //       y: e.clientY,
-  //     };
-  //     const data = {
-  //       type: 'mouseMove',
-  //       position: mousePosition,
-  //     };
-  //     ws.send(JSON.stringify(data));
-  //   });
-
-  //   // Clean up
-  //   return () => {
-  //     // ws.close();
-  //     canvas?.dispose();
-  //   };
-  // }, []);
-
   useEffect(() => {
     if (canvasRef.current) {
       const newCanvas = new fabric.Canvas(canvasRef.current, {
         backgroundColor: "#fff",
         height: window.innerHeight * 0.9,
         width: window.innerWidth,
+        isDrawingMode: drawingMode,
       });
       setCanvas(newCanvas);
 
@@ -157,7 +135,35 @@ const WhiteBoard = () => {
         newCanvas.dispose();
       };
     }
-  }, []);
+  }, [drawingMode]);
+
+  useEffect(() => {
+    const handleCanvasEvents = () => {
+      if (!canvas) return;
+
+      const mouseDownHandler = () => {
+        saveState(canvas, undoStack, setUndoStack, redoStack, setRedoStack);
+        handleCanvasChange();
+      };
+
+      const mouseUpHandler = () => {
+        saveState(canvas, undoStack, setUndoStack, redoStack, setRedoStack);
+        handleCanvasChange();
+      };
+
+      canvas.on("mouse:down", mouseDownHandler);
+      canvas.on("mouse:up", mouseUpHandler);
+
+      return () => {
+        canvas.off("mouse:down", mouseDownHandler);
+        canvas.off("mouse:up", mouseUpHandler);
+      };
+    };
+
+    if (canvas) {
+      handleCanvasEvents();
+    }
+  }, [canvas, undoStack, redoStack]);
 
   useEffect(() => {
     if (canvas) {
@@ -177,15 +183,11 @@ const WhiteBoard = () => {
       const canvasState = JSON.stringify(canvas);
 
       // Send canvas state to WebSocket server
-      console.log("handleCanvasChange called !!", canvasState);
-      console.log("Tyep:  ", typeof canvasState);
       const sendToServer = JSON.stringify({
         type: sessionId.sessionId,
         data: canvasState,
       });
       ws.send(sendToServer);
-    } else {
-      console.log("handleCanvasChange called in elseeeeeee!!");
     }
   };
 
@@ -256,15 +258,30 @@ const WhiteBoard = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("canvas: ", canvas);
-  }, [canvas]);
+  const handleBrushColorChange = (color: string) => {
+    setBrushColor(color);
+    canvas && (canvas.freeDrawingBrush.color = color);
+    canvas?.renderAll();
+  };
+
+  const handleBrushSizeChange = (size: number) => {
+    setBrushSize(size);
+    canvas && (canvas.freeDrawingBrush.width = size);
+    canvas?.renderAll();
+  };
+
+  const toggleDrawingMode = () => {
+    setDrawingMode((prevMode) => {
+      if (canvas) {
+        canvas.isDrawingMode = !prevMode;
+      }
+      return !prevMode;
+    });
+  };
 
   const removeSelectedShape = () => {
-    console.log("giot hitttttt", canvas);
     if (canvas) {
       const activeObject = canvas.getActiveObject();
-      console.log("actibeeeL ", activeObject);
       if (activeObject) {
         canvas.remove(activeObject);
         saveState(canvas, undoStack, setUndoStack, redoStack, setRedoStack);
@@ -274,21 +291,38 @@ const WhiteBoard = () => {
   };
 
   return (
-    <div
-      className="whiteboard-container"
-    >
+    <div className="whiteboard-container">
       <div className="canvas-container">
         <canvas ref={canvasRef} className="canvas" />
+        <div className="save-buttons">
+          <button onClick={() => saveAsImage(canvas!)}>Save as Image</button>
+          <button onClick={() => saveAsPDF(canvas!)}>Save as PDF</button>
+        </div>
       </div>
-      <div
-        className="toolbar-container"
-      >
+      <div className="toolbar-container">
         <div className="btn-group" role="group">
           <RectangleDrawer canvas={canvas} addShape={addShape} />
           <CircleDrawer canvas={canvas} addShape={addShape} />
           <TriangleDrawer canvas={canvas} addShape={addShape} />
           <LineDrawer canvas={canvas} addShape={addShape} />
           <TextDrawer canvas={canvas} addShape={addShape} />
+        </div>
+        <div>
+          <input
+            type="color"
+            value={brushColor}
+            onChange={(e) => handleBrushColorChange(e.target.value)}
+          />
+          <input
+            type="range"
+            min="1"
+            max="20"
+            value={brushSize}
+            onChange={(e) => handleBrushSizeChange(parseInt(e.target.value))}
+          />
+          <button onClick={toggleDrawingMode}>
+            {drawingMode ? "Disable Drawing" : "Enable Drawing"}
+          </button>
         </div>
         <div>
           <button
@@ -307,8 +341,7 @@ const WhiteBoard = () => {
             onClick={() => callColorChangeHandler("green")}
           ></button>
         </div>
-        <div
-          className="action-buttons">
+        <div className="action-buttons">
           <button
             type="button"
             className="btn btn-outline-danger"

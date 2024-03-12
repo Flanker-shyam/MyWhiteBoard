@@ -1,6 +1,10 @@
 import React from "react";
 
 function Header() {
+
+  const handleLogin = () =>{
+    window.location.href = "/whiteboard";
+  }
   return (
     <div className="container">
       <header className="d-flex flex-wrap align-items-center justify-content-center justify-content-md-between py-3 mb-4 border-bottom">
@@ -49,7 +53,7 @@ function Header() {
         </ul>
 
         <div className="col-md-3 text-end">
-          <button type="button" className="btn btn-outline-primary me-2">
+          <button type="button" className="btn btn-outline-primary me-2" onClick={handleLogin}>
             Login
           </button>
         </div>
