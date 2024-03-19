@@ -20,6 +20,7 @@ This is a collaborative whiteboard application built using React and TypeScript.
 
 ### Initial Setup:
 <ol>
+<li>Fork this repo</li>
 <li>
 Clone git repo
 (SSH setup is required)  <br>
