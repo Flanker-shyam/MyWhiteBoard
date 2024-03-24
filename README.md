@@ -1,7 +1,7 @@
 # Whiteboard Application
 
 ### Description
-This is a collaborative whiteboard application built using React and TypeScript. It allows users to draw shapes, add text, and collaborate in real-time with their team members and creating new session or joining teh existing one.
+Introducing "DrawSync": an innovative collaborative whiteboard application crafted with React, TypeScript, and the powerful Fabric.js library. Dive into a seamless experience where users can unleash their creativity by effortlessly drawing shapes, adding text, and collaborating in real-time with their team members. With DrawSync, users can seamlessly create new sessions or join existing ones, fostering a dynamic environment for teamwork and brainstorming. Leveraging the robust WebSocket technology, DrawSync ensures instant synchronization of actions across all connected devices, enabling fluid collaboration and smooth interaction. Embrace the future of digital collaboration with DrawSync, where creativity knows no bounds and teamwork knows no limits.
 
 <img width="1439" alt="Screenshot 2024-03-12 at 2 03 56 PM" src="https://github.com/Flanker-shyam/MyWhiteBoard/assets/85950516/a2a419c4-14ec-4be4-99c6-b29b8cace1f7">
 
